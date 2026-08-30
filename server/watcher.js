@@ -1,3 +1,4 @@
+import { WebSocket } from 'ws';
 import { db } from './db.js';
 import { SUPPORTED_CHAINS } from './chains.js';
 import { NFT_COLLECTIONS_DATA, TOKENS_CATALOG } from './mockData.js';
@@ -5,47 +6,88 @@ import { generateRandomHash } from './blockchain.js';
 
 class WatcherEngine {
   constructor() {
-    this.clients = [];
+    this.wsClients = new Set();
+    this.sseClients = [];
     this.intervalId = null;
     this.isRunning = false;
   }
 
-  // Subscribe SSE client
+  // Register WebSocket client
+  addWsClient(ws) {
+    this.wsClients.add(ws);
+    // Send initial handshake
+    try {
+      ws.send(JSON.stringify({ 
+        type: 'CONNECTED', 
+        protocol: 'WEBSOCKET',
+        timestamp: new Date().toISOString() 
+      }));
+    } catch (e) {}
+
+    ws.on('close', () => {
+      this.wsClients.delete(ws);
+    });
+
+    ws.on('error', () => {
+      this.wsClients.delete(ws);
+    });
+
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        if (data.type === 'PING') {
+          ws.send(JSON.stringify({ type: 'PONG', timestamp: new Date().toISOString() }));
+        }
+      } catch (err) {}
+    });
+  }
+
+  // Subscribe SSE client (for compatibility)
   subscribe(req, res) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.flushHeaders();
 
-    // Send initial handshake
-    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: new Date().toISOString() })}\n\n`);
-
-    this.clients.push(res);
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', protocol: 'SSE', timestamp: new Date().toISOString() })}\n\n`);
+    this.sseClients.push(res);
 
     req.on('close', () => {
-      this.clients = this.clients.filter(client => client !== res);
+      this.sseClients = this.sseClients.filter(client => client !== res);
     });
   }
 
-  // Broadcast event to all SSE clients
+  // Broadcast event to all WebSocket and SSE clients
   broadcast(event) {
-    const payload = `data: ${JSON.stringify(event)}\n\n`;
-    this.clients.forEach(client => {
-      try {
-        client.write(payload);
-      } catch (err) {
-        // client closed
+    const payload = JSON.stringify(event);
+
+    // 1. Broadcast to WebSocket clients
+    this.wsClients.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        try {
+          ws.send(payload);
+        } catch (err) {
+          this.wsClients.delete(ws);
+        }
       }
+    });
+
+    // 2. Broadcast to SSE clients
+    const ssePayload = `data: ${payload}\n\n`;
+    this.sseClients.forEach(client => {
+      try {
+        client.write(ssePayload);
+      } catch (err) {}
     });
   }
 
   start() {
     if (this.isRunning) return;
     this.isRunning = true;
-    console.log("[Watcher] Motor de monitoramento de carteiras iniciado.");
+    console.log("[Watcher] Motor de monitoramento WebSocket iniciado.");
 
     const settings = db.getSettings();
-    const intervalMs = (settings.simulationIntervalSec || 8) * 1000;
+    const intervalMs = (settings.simulationIntervalSec || 6) * 1000;
 
     this.intervalId = setInterval(() => {
       if (!db.getSettings().simulationActive) return;
@@ -76,7 +118,6 @@ class WatcherEngine {
     const chainKey = (wallet.network || 'ethereum').toLowerCase();
     const chain = SUPPORTED_CHAINS[chainKey] || SUPPORTED_CHAINS.ethereum;
 
-    // Pick transaction type: NFT_MINT, NFT_BUY, NFT_SELL, TOKEN_SWAP, TOKEN_TRANSFER
     const types = ['NFT_MINT', 'NFT_BUY', 'TOKEN_SWAP', 'TOKEN_SWAP', 'TOKEN_TRANSFER'];
     const chosenType = explicitType || types[Math.floor(Math.random() * types.length)];
 
@@ -85,7 +126,6 @@ class WatcherEngine {
     const now = new Date().toISOString();
 
     if (chosenType === 'NFT_MINT' || chosenType === 'NFT_BUY' || chosenType === 'NFT_SELL') {
-      // Find collection for this network or general
       const collectionsForChain = NFT_COLLECTIONS_DATA.filter(c => c.network === chainKey);
       const collection = collectionsForChain.length > 0
         ? collectionsForChain[Math.floor(Math.random() * collectionsForChain.length)]
@@ -120,7 +160,7 @@ class WatcherEngine {
       };
     } else if (chosenType === 'TOKEN_SWAP') {
       const tokens = TOKENS_CATALOG[chainKey] || TOKENS_CATALOG.ethereum;
-      const t1 = tokens[0]; // Native or major
+      const t1 = tokens[0];
       const t2 = tokens.length > 1 ? tokens[Math.floor(Math.random() * (tokens.length - 1)) + 1] : tokens[0];
 
       const inAmount = (Math.random() * 3 + 0.2).toFixed(2);
@@ -135,7 +175,7 @@ class WatcherEngine {
         type: 'TOKEN_SWAP',
         txHash,
         from: wallet.address,
-        to: '0x1111111254fb6c44bac0bed2854e76f90643097d', // DEX Router
+        to: '0x1111111254fb6c44bac0bed2854e76f90643097d',
         valueToken: parseFloat(inAmount),
         tokenSymbol: chain.symbol,
         tokenName: chain.name,
@@ -149,7 +189,6 @@ class WatcherEngine {
         notes: `Swap de token em DEX descentralizada na rede ${chain.name}`
       };
     } else {
-      // TOKEN TRANSFER
       const tokens = TOKENS_CATALOG[chainKey] || TOKENS_CATALOG.ethereum;
       const token = tokens[Math.floor(Math.random() * tokens.length)];
       const amount = (Math.random() * 10 + 0.5).toFixed(2);
@@ -176,10 +215,8 @@ class WatcherEngine {
       };
     }
 
-    // Save to database
     const savedTx = db.addTransaction(tx);
 
-    // Broadcast real-time event
     this.broadcast({
       type: 'NEW_TRANSACTION',
       transaction: savedTx
