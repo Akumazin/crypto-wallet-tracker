@@ -49,7 +49,7 @@ export default function Navbar({
               </div>
               <p className="text-xs text-slate-400 font-mono flex items-center space-x-1.5">
                 <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-400 animate-ping' : 'bg-rose-500'}`}></span>
-                <span>{isConnected ? 'LIVE MONITOR (9 REDES)' : 'DESCONECTADO'}</span>
+                <span>{isConnected ? 'WEBSOCKET LIVE (9 REDES)' : 'RECONECTANDO...'}</span>
               </p>
             </div>
           </div>
