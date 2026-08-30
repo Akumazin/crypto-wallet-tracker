@@ -79,6 +79,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Pudgy Penguins",
     network: "ethereum",
+    contractAddress: "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8",
+    openSeaSlug: "pudgypenguins",
     floorPriceEth: 11.8,
     image: "https://images.unsplash.com/photo-1563089145-599997674d42?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -86,6 +88,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Bored Ape Yacht Club",
     network: "ethereum",
+    contractAddress: "0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D",
+    openSeaSlug: "boredapeyachtclub",
     floorPriceEth: 13.4,
     image: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -93,6 +97,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Base Punks Gen-2",
     network: "base",
+    contractAddress: "0x39a1D574542B8C654497e88C0c6F721b0C863dF9",
+    openSeaSlug: "base-punks",
     floorPriceEth: 0.85,
     image: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -100,6 +106,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Monad Chads Club",
     network: "monad",
+    contractAddress: "0x10143a5c128479a9d3864197e42ba79b5c3080ff",
+    openSeaSlug: "monad-chads",
     floorPriceEth: 45.0,
     image: "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -107,6 +115,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Hyper Purrs Genesis",
     network: "hyperevm",
+    contractAddress: "0x998a7beb91bf9983692484a0d9b4b09f0c61141",
+    openSeaSlug: "hyper-purrs",
     floorPriceEth: 120.0,
     image: "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -114,6 +124,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Ape Legends 3D",
     network: "ape",
+    contractAddress: "0x33139aadade8e6dff049820680d1f14bd3903a5d",
+    openSeaSlug: "ape-legends",
     floorPriceEth: 850.0,
     image: "https://images.unsplash.com/photo-1618172193763-c511deb635ca?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -121,6 +133,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Ink Kraken Beasts",
     network: "ink",
+    contractAddress: "0x57073d1a55bcc2695c58ba16fb37d819b0a4dc",
+    openSeaSlug: "ink-kraken",
     floorPriceEth: 0.42,
     image: "https://images.unsplash.com/photo-1614680376593-902f749f7ffc?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -128,6 +142,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Pancake Bunnies Squad",
     network: "bnb",
+    contractAddress: "0x0a8901b0E25DEb55A87524f0cC164E9644020EBA",
+    openSeaSlug: "pancake-bunnies",
     floorPriceEth: 1.2,
     image: "https://images.unsplash.com/photo-1620121692029-d088224ddc74?w=400&auto=format&fit=crop&q=80",
     verified: true
@@ -135,6 +151,8 @@ export const NFT_COLLECTIONS_DATA = [
   {
     name: "Arbitrum Knights",
     network: "arbitrum",
+    contractAddress: "0x42161f539739df2c5dacb4c659f2488d00000001",
+    openSeaSlug: "arbitrum-knights",
     floorPriceEth: 0.65,
     image: "https://images.unsplash.com/photo-1634986666676-ec8fd927c23d?w=400&auto=format&fit=crop&q=80",
     verified: true
