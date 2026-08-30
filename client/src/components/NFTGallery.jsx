@@ -4,9 +4,11 @@ import { Sparkles, ExternalLink, ShieldCheck, Tag, Eye, Filter } from 'lucide-re
 export default function NFTGallery({ transactions, chains, selectedNetwork, onSelectWalletDetail }) {
   const [collectionFilter, setCollectionFilter] = useState('all');
 
-  // Filter only NFT transactions (Mints, Buys, Sells)
+  // Filter only legitimate NFT transactions (Mints, Buys, Sells) and purge spam/dust airdrops
   const nftItems = transactions.filter(t => 
-    t.nftCollection && (t.type === 'NFT_MINT' || t.type === 'NFT_BUY' || t.type === 'NFT_SELL')
+    !t.isSpam &&
+    t.nftCollection && 
+    (t.type === 'NFT_MINT' || t.type === 'NFT_BUY' || t.type === 'NFT_SELL')
   ).filter(t => {
     if (selectedNetwork !== 'all' && t.network?.toLowerCase() !== selectedNetwork.toLowerCase()) {
       return false;
@@ -19,7 +21,7 @@ export default function NFTGallery({ transactions, chains, selectedNetwork, onSe
 
   // Extract unique collections for filter dropdown
   const uniqueCollections = Array.from(new Set(
-    transactions.filter(t => t.nftCollection).map(t => t.nftCollection)
+    transactions.filter(t => t.nftCollection && !t.isSpam).map(t => t.nftCollection)
   ));
 
   return (
@@ -33,13 +35,14 @@ export default function NFTGallery({ transactions, chains, selectedNetwork, onSe
             </div>
             <div>
               <h2 className="text-lg font-bold text-white flex items-center space-x-2">
-                <span>Galeria de NFTs & Mints Recentes</span>
+                <span>Galeria de NFTs & Mints Verificados</span>
                 <span className="px-2 py-0.5 text-xs font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/40 rounded-full">
                   {nftItems.length} NFTs
                 </span>
               </h2>
-              <p className="text-xs text-slate-400">
-                Acompanhe as artes digitais, avatares e mints executados pelas carteiras monitoradas.
+              <p className="text-xs text-slate-400 flex items-center space-x-1.5 mt-0.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Filtro Anti-Spam: Exibindo apenas Mints e Compras em marketplaces (Airdrops não solicitados bloqueados).</span>
               </p>
             </div>
           </div>
@@ -65,9 +68,9 @@ export default function NFTGallery({ transactions, chains, selectedNetwork, onSe
       {nftItems.length === 0 ? (
         <div className="text-center py-20 px-4 rounded-2xl bg-dark-900/60 border border-slate-800">
           <Sparkles className="w-12 h-12 mx-auto text-purple-400/40 mb-3" />
-          <h3 className="text-base font-semibold text-white">Nenhum NFT encontrado nesta seleção</h3>
+          <h3 className="text-base font-semibold text-white">Nenhum NFT verificado encontrado nesta seleção</h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
-            Alterne o filtro de rede no topo ou aguarde novas atividades de mint de NFTs pelas carteiras.
+            Alterne o filtro de rede no topo ou aguarde novas atividades de mint de NFTs pelas carteiras monitoradas.
           </p>
         </div>
       ) : (
@@ -76,13 +79,23 @@ export default function NFTGallery({ transactions, chains, selectedNetwork, onSe
             const chain = chains[nft.network?.toLowerCase()] || chains.ethereum || {};
             const isMint = nft.type === 'NFT_MINT';
 
+            // OpenSea URL direct and collection
+            const openSeaUrl = nft.openSeaUrl || `https://opensea.io/assets/${nft.network || 'ethereum'}/${nft.contractAddress || '0x000'}/${nft.nftTokenId?.replace('#', '') || '1'}`;
+            const openSeaCollectionUrl = nft.openSeaCollectionUrl || `https://opensea.io/collection/${nft.nftCollection?.toLowerCase().replace(/\s+/g, '-')}`;
+
             return (
               <div
                 key={nft.id}
                 className="group relative overflow-hidden rounded-2xl bg-dark-900 border border-slate-800/80 hover:border-purple-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-purple-500/10 flex flex-col"
               >
                 {/* NFT Image Container */}
-                <div className="relative aspect-square w-full overflow-hidden bg-dark-950">
+                <a 
+                  href={openSeaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="relative aspect-square w-full overflow-hidden bg-dark-950 block"
+                  title="Abrir no OpenSea"
+                >
                   <img
                     src={nft.nftImage || "https://images.unsplash.com/photo-1563089145-599997674d42?w=400&auto=format&fit=crop&q=80"}
                     alt={nft.nftCollection}
@@ -119,16 +132,24 @@ export default function NFTGallery({ transactions, chains, selectedNetwork, onSe
                       ${nft.valueUsd?.toLocaleString()}
                     </span>
                   </div>
-                </div>
+                </a>
 
                 {/* NFT Details Card Body */}
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
-                    <h3 className="font-bold text-white text-base truncate group-hover:text-purple-300 transition-colors">
-                      {nft.nftCollection}
-                    </h3>
+                    <div className="flex items-center justify-between">
+                      <a
+                        href={openSeaCollectionUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-bold text-white text-base truncate group-hover:text-purple-300 transition-colors hover:underline"
+                        title="Ver Coleção no OpenSea"
+                      >
+                        {nft.nftCollection}
+                      </a>
+                    </div>
                     
-                    <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
+                    <div className="mt-1.5 flex items-center justify-between text-xs text-slate-400">
                       <span>Rastreado por:</span>
                       <button
                         onClick={() => onSelectWalletDetail && onSelectWalletDetail(nft.walletId)}
@@ -139,8 +160,8 @@ export default function NFTGallery({ transactions, chains, selectedNetwork, onSe
                     </div>
                   </div>
 
-                  {/* Price and Action Link */}
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                  {/* Price and Action Links */}
+                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
                     <div>
                       <div className="text-[10px] uppercase font-mono text-slate-500">Valor Estimado</div>
                       <div className="text-xs font-bold text-white font-mono">
@@ -148,15 +169,30 @@ export default function NFTGallery({ transactions, chains, selectedNetwork, onSe
                       </div>
                     </div>
 
-                    <a
-                      href={`${chain.explorerUrl}/tx/${nft.txHash}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-dark-950 hover:bg-purple-600/20 border border-slate-800 hover:border-purple-500/40 text-slate-300 hover:text-purple-300 text-xs font-medium transition-all"
-                    >
-                      <span>Explorer</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                    <div className="flex items-center space-x-1.5">
+                      {/* OpenSea Direct Button */}
+                      <a
+                        href={openSeaUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Abrir no OpenSea"
+                        className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-blue-300 text-xs font-bold transition-all"
+                      >
+                        <span>OpenSea</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+
+                      {/* Explorer Link */}
+                      <a
+                        href={`${chain.explorerUrl}/tx/${nft.txHash}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Ver no Explorador"
+                        className="p-1.5 rounded-lg bg-dark-950 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
