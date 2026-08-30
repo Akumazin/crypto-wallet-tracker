@@ -1,0 +1,26 @@
+{
+  "name": "crypto-wallet-tracker",
+  "version": "1.0.0",
+  "description": "Multi-Chain Crypto, NFT & Token Wallet Tracker with Real-Time Dashboard",
+  "private": true,
+  "scripts": {
+    "start": "node server/server.js",
+    "dev:server": "cd server && node --watch server.js",
+    "dev:client": "cd client && npm run dev",
+    "build": "cd client && npm run build"
+  },
+  "keywords": [
+    "ethereum",
+    "base",
+    "hyperevm",
+    "monad",
+    "ink",
+    "apechain",
+    "bnb",
+    "arbitrum",
+    "robinhood",
+    "nft",
+    "tokens",
+    "wallet-tracker"
+  ]
+}
