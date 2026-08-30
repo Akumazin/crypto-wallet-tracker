@@ -3,6 +3,7 @@ import { db } from './db.js';
 import { SUPPORTED_CHAINS } from './chains.js';
 import { NFT_COLLECTIONS_DATA, TOKENS_CATALOG } from './mockData.js';
 import { generateRandomHash } from './blockchain.js';
+import { isScamOrSpam, getOpenSeaUrl, getCollectionUrl } from './antiSpam.js';
 
 class WatcherEngine {
   constructor() {
@@ -135,6 +136,10 @@ class WatcherEngine {
       const priceVal = (collection.floorPriceEth * (0.8 + Math.random() * 0.5)).toFixed(3);
       const priceUsd = parseFloat((priceVal * chain.nativePriceUsd).toFixed(2));
 
+      const contractAddr = collection.contractAddress || '0xBC4CA0EdA7647A8aB7C2061c2E118A18a936f13D';
+      const openSeaUrl = getOpenSeaUrl(chain.id, contractAddr, tokenId);
+      const openSeaCollectionUrl = getCollectionUrl(chain.id, collection.openSeaSlug || collection.name, contractAddr);
+
       tx = {
         walletId: wallet.id,
         walletAddress: wallet.address,
@@ -151,6 +156,9 @@ class WatcherEngine {
         nftCollection: collection.name,
         nftTokenId: tokenId,
         nftImage: collection.image,
+        contractAddress: contractAddr,
+        openSeaUrl: openSeaUrl,
+        openSeaCollectionUrl: openSeaCollectionUrl,
         gasFee: `0.00${Math.floor(Math.random() * 80 + 10)} ${chain.symbol}`,
         timestamp: now,
         status: "CONFIRMED",
@@ -215,12 +223,21 @@ class WatcherEngine {
       };
     }
 
+    // Run Anti-Spam / Anti-Scam filter
+    const spamCheck = isScamOrSpam(tx);
+    tx.isSpam = spamCheck.isSpam;
+    tx.spamReason = spamCheck.reason;
+
+    // Save to database
     const savedTx = db.addTransaction(tx);
 
-    this.broadcast({
-      type: 'NEW_TRANSACTION',
-      transaction: savedTx
-    });
+    // Only broadcast if not spam
+    if (!tx.isSpam) {
+      this.broadcast({
+        type: 'NEW_TRANSACTION',
+        transaction: savedTx
+      });
+    }
 
     return savedTx;
   }
