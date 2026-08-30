@@ -1,4 +1,6 @@
 import express from 'express';
+import http from 'http';
+import { WebSocketServer } from 'ws';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -14,6 +16,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Create HTTP server
+const server = http.createServer(app);
+
+// Initialize WebSocket Server on /ws path
+const wss = new WebSocketServer({ server, path: '/ws' });
+
+wss.on('connection', (ws, req) => {
+  const ip = req.socket.remoteAddress;
+  console.log(`[WebSocket] Novo cliente conectado: ${ip}`);
+  watcher.addWsClient(ws);
+});
+
 app.use(cors());
 app.use(express.json());
 
@@ -23,18 +37,18 @@ app.use(express.static(clientDist));
 
 // Log incoming requests
 app.use((req, res, next) => {
-  if (req.path !== '/api/events') {
+  if (req.path !== '/api/events' && req.path !== '/ws') {
     console.log(`[API] ${req.method} ${req.path}`);
   }
   next();
 });
 
-// 1. Get supported chains metadata
+// 1. Get supported chains metadata with backup RPCs
 app.get('/api/chains', (req, res) => {
   res.json({ success: true, chains: SUPPORTED_CHAINS });
 });
 
-// 2. Real-time SSE Stream
+// 2. Real-time SSE Stream (Fallback)
 app.get('/api/events', (req, res) => {
   watcher.subscribe(req, res);
 });
@@ -62,7 +76,7 @@ app.post('/api/wallets', async (req, res) => {
       return res.status(400).json({ success: false, message: `Esta carteira já está cadastrada como "${existing.label}".` });
     }
 
-    // Try fetching live balance on the chosen network
+    // Try fetching live balance on the chosen network with fallback RPCs
     const net = (network || 'ethereum').toLowerCase();
     const liveBal = await fetchLiveBalance(net, address);
 
@@ -72,17 +86,17 @@ app.post('/api/wallets', async (req, res) => {
       network: net,
       tags: tags || ["Trader"],
       color: color || SUPPORTED_CHAINS[net]?.color || "#627EEA",
-      balanceUsd: liveBal.balanceUsd || 12500.0,
+      balanceUsd: liveBal.balanceUsd || 0,
       notes: notes || ""
     });
 
-    // Notify connected clients
+    // Notify connected WebSocket clients
     watcher.broadcast({
       type: 'WALLET_ADDED',
       wallet: newWallet
     });
 
-    // Trigger an initial sample transaction for this new wallet so the user sees it in action
+    // Trigger initial sample transaction for this new wallet
     setTimeout(() => {
       watcher.simulateRandomActivity(newWallet);
     }, 1200);
@@ -144,12 +158,11 @@ app.post('/api/transactions/simulate', (req, res) => {
   res.json({ success: true, transaction: tx });
 });
 
-// 6. Aggregated NFT Hub (Mints, Buys, Sells across tracked wallets)
+// 6. Aggregated NFT Hub
 app.get('/api/nfts', (req, res) => {
   const txs = db.getTransactions();
   const nftTxs = txs.filter(t => t.nftCollection && (t.type === 'NFT_MINT' || t.type === 'NFT_BUY' || t.type === 'NFT_SELL'));
   
-  // Aggregate unique NFTs or recent activity
   res.json({
     success: true,
     count: nftTxs.length,
@@ -157,7 +170,7 @@ app.get('/api/nfts', (req, res) => {
   });
 });
 
-// 7. Aggregated Token Radar (Most traded tokens by tracked wallets)
+// 7. Aggregated Token Radar
 app.get('/api/tokens', (req, res) => {
   const txs = db.getTransactions();
   const tokenStats = {};
@@ -228,12 +241,12 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(clientDist, 'index.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
+// Start Server with WebSocket attachment
+server.listen(PORT, () => {
   console.log(`\n======================================================`);
-  console.log(`🔥 Wallet & NFT/Token Tracker Server rodando na porta ${PORT}`);
-  console.log(`🌐 Redes ativas: Ethereum, Base, HyperEVM, Monad, Ink, Ape, BNB, Arbitrum, Robinhood`);
-  console.log(`📡 SSE Stream: http://localhost:${PORT}/api/events`);
+  console.log(`⚡ AlphaTracker Server (HTTP + WebSocket) rodando na porta ${PORT}`);
+  console.log(`🌐 9 Redes ativas com Multi-RPC Failover e WSS`);
+  console.log(`🔌 WebSocket Endpoint: ws://localhost:${PORT}/ws`);
   console.log(`======================================================\n`);
   watcher.start();
 });
