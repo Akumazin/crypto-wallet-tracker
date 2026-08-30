@@ -11,6 +11,43 @@ export function formatAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+// Resilient multi-RPC query with automatic failover
+export async function queryRpcWithFallback(chain, method, params = []) {
+  const rpcList = [chain.rpcUrl, ...(chain.backupRpcs || [])];
+
+  for (const rpc of rpcList) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+      const response = await fetch(rpc, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          method,
+          params,
+          id: 1
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+
+      if (data && data.result !== undefined) {
+        return data.result;
+      }
+    } catch (err) {
+      // Failed on this RPC, will attempt next backup RPC in list
+      // console.warn(`RPC ${rpc} failed (${err.message}), trying backup...`);
+    }
+  }
+
+  return null;
+}
+
 export async function fetchLiveBalance(network, address) {
   const chain = SUPPORTED_CHAINS[network.toLowerCase()];
   if (!chain || !isValidAddress(address)) {
@@ -18,27 +55,9 @@ export async function fetchLiveBalance(network, address) {
   }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-    const response = await fetch(chain.rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        method: 'eth_getBalance',
-        params: [address, 'latest'],
-        id: 1
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    if (!response.ok) throw new Error(`HTTP error ${response.status}`);
-    const data = await response.json();
-
-    if (data.result) {
-      const wei = BigInt(data.result);
+    const rawBalance = await queryRpcWithFallback(chain, 'eth_getBalance', [address, 'latest']);
+    if (rawBalance) {
+      const wei = BigInt(rawBalance);
       const ethVal = Number(wei) / 1e18;
       const usdVal = ethVal * (chain.nativePriceUsd || 2500);
       return {
@@ -47,7 +66,7 @@ export async function fetchLiveBalance(network, address) {
       };
     }
   } catch (err) {
-    // Return fallback balance if RPC rate limits or is offline
+    // fallback
   }
 
   return {
