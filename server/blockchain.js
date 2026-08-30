@@ -11,6 +11,18 @@ export function formatAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
+export function padAddress(address) {
+  if (!address) return '';
+  const clean = address.toLowerCase().replace('0x', '');
+  return '0x' + clean.padStart(64, '0');
+}
+
+export function unpadAddress(topic) {
+  if (!topic) return '';
+  const clean = topic.replace('0x', '');
+  return '0x' + clean.slice(-40);
+}
+
 // Resilient multi-RPC query with automatic failover
 export async function queryRpcWithFallback(chain, method, params = []) {
   const rpcList = [chain.rpcUrl, ...(chain.backupRpcs || [])];
@@ -18,7 +30,7 @@ export async function queryRpcWithFallback(chain, method, params = []) {
   for (const rpc of rpcList) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       const response = await fetch(rpc, {
         method: 'POST',
@@ -41,7 +53,6 @@ export async function queryRpcWithFallback(chain, method, params = []) {
       }
     } catch (err) {
       // Failed on this RPC, will attempt next backup RPC in list
-      // console.warn(`RPC ${rpc} failed (${err.message}), trying backup...`);
     }
   }
 
@@ -73,6 +84,48 @@ export async function fetchLiveBalance(network, address) {
     balanceNative: 0,
     balanceUsd: 0
   };
+}
+
+export async function getLatestBlockNumber(chain) {
+  try {
+    const raw = await queryRpcWithFallback(chain, 'eth_blockNumber', []);
+    if (raw) return parseInt(raw, 16);
+  } catch (e) {}
+  return null;
+}
+
+// Fetch real on-chain transfer events (ERC-20, ERC-721 NFTs) for a specific wallet address
+export async function fetchOnChainTransfers(chain, address, fromBlock, toBlock) {
+  if (!isValidAddress(address)) return [];
+
+  const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+  const padded = padAddress(address);
+
+  const hexFrom = '0x' + fromBlock.toString(16);
+  const hexTo = '0x' + toBlock.toString(16);
+
+  try {
+    // 1. Check incoming transfers/mints
+    const inLogsPromise = queryRpcWithFallback(chain, 'eth_getLogs', [{
+      fromBlock: hexFrom,
+      toBlock: hexTo,
+      topics: [TRANSFER_TOPIC, null, padded]
+    }]);
+
+    // 2. Check outgoing transfers
+    const outLogsPromise = queryRpcWithFallback(chain, 'eth_getLogs', [{
+      fromBlock: hexFrom,
+      toBlock: hexTo,
+      topics: [TRANSFER_TOPIC, padded]
+    }]);
+
+    const [inLogs, outLogs] = await Promise.all([inLogsPromise, outLogsPromise]);
+    const allLogs = [...(Array.isArray(inLogs) ? inLogs : []), ...(Array.isArray(outLogs) ? outLogs : [])];
+
+    return allLogs;
+  } catch (err) {
+    return [];
+  }
 }
 
 export function generateRandomHash() {
