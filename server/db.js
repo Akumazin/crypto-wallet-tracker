@@ -110,6 +110,11 @@ class Database {
   getTransactions(filter = {}) {
     let result = [...this.transactions];
 
+    // Filter out Spam by default
+    if (!filter.includeSpam) {
+      result = result.filter(t => !t.isSpam);
+    }
+
     if (filter.walletId) {
       result = result.filter(t => t.walletId === filter.walletId);
     }
@@ -155,6 +160,11 @@ class Database {
       nftCollection: txData.nftCollection || null,
       nftTokenId: txData.nftTokenId || null,
       nftImage: txData.nftImage || null,
+      contractAddress: txData.contractAddress || null,
+      openSeaUrl: txData.openSeaUrl || null,
+      openSeaCollectionUrl: txData.openSeaCollectionUrl || null,
+      isSpam: txData.isSpam || false,
+      spamReason: txData.spamReason || null,
       swapFromToken: txData.swapFromToken || null,
       swapToToken: txData.swapToToken || null,
       gasFee: txData.gasFee || "0.001 ETH ($2.85)",
@@ -164,7 +174,6 @@ class Database {
     };
 
     this.transactions.unshift(newTx);
-    // Keep max 500 recent transactions
     if (this.transactions.length > 500) {
       this.transactions = this.transactions.slice(0, 500);
     }
