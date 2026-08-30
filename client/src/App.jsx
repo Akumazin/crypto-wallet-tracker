@@ -24,6 +24,7 @@ import {
   updateSettings as apiUpdateSettings, 
   subscribeToEvents 
 } from './services/api';
+import { WebSocketClient } from './services/websocket';
 import { soundManager } from './services/audio';
 import confetti from 'canvas-confetti';
 
@@ -73,62 +74,65 @@ export default function App() {
   useEffect(() => {
     loadInitialData();
 
-    // Setup SSE connection
-    const unsubscribe = subscribeToEvents(
+    const handleIncomingEvent = (event) => {
+      if (event.type === 'NEW_TRANSACTION') {
+        const tx = event.transaction;
+
+        setTransactions(prev => [tx, ...prev.slice(0, 499)]);
+
+        if (tx.type === 'NFT_MINT') {
+          soundManager.playNftMintSound();
+          confetti({
+            particleCount: 35,
+            spread: 60,
+            origin: { y: 0.85 }
+          });
+        } else {
+          soundManager.playTxPing();
+        }
+
+        const alertItem = {
+          id: `alert-${Date.now()}-${Math.random()}`,
+          transaction: tx
+        };
+        setLiveAlerts(prev => [alertItem, ...prev.slice(0, 3)]);
+
+        setTimeout(() => {
+          setLiveAlerts(prev => prev.filter(a => a.id !== alertItem.id));
+        }, 6000);
+
+        fetchStats().then(res => res.success && setStats(res.stats));
+        fetchTokens().then(res => res.success && setTokensData(res));
+      } else if (event.type === 'WALLET_ADDED') {
+        setWallets(prev => [event.wallet, ...prev]);
+        fetchStats().then(res => res.success && setStats(res.stats));
+      } else if (event.type === 'WALLET_UPDATED') {
+        setWallets(prev => prev.map(w => w.id === event.wallet.id ? event.wallet : w));
+      } else if (event.type === 'WALLET_DELETED') {
+        setWallets(prev => prev.filter(w => w.id !== event.walletId));
+        fetchStats().then(res => res.success && setStats(res.stats));
+      }
+    };
+
+    // Primary: WebSocket Connection
+    const wsClient = new WebSocketClient(
+      handleIncomingEvent,
+      (status) => setIsConnected(status)
+    );
+    wsClient.connect();
+
+    // Fallback: SSE connection if WebSocket fails
+    const unsubscribeSse = subscribeToEvents(
       (event) => {
         setIsConnected(true);
-
-        if (event.type === 'NEW_TRANSACTION') {
-          const tx = event.transaction;
-
-          // Add to top of transactions list
-          setTransactions(prev => [tx, ...prev.slice(0, 499)]);
-
-          // Sound effect
-          if (tx.type === 'NFT_MINT') {
-            soundManager.playNftMintSound();
-            // Confetti for rare/notable NFT mints
-            confetti({
-              particleCount: 35,
-              spread: 60,
-              origin: { y: 0.85 }
-            });
-          } else {
-            soundManager.playTxPing();
-          }
-
-          // Add toast alert
-          const alertItem = {
-            id: `alert-${Date.now()}-${Math.random()}`,
-            transaction: tx
-          };
-          setLiveAlerts(prev => [alertItem, ...prev.slice(0, 3)]);
-
-          // Auto dismiss alert after 6 seconds
-          setTimeout(() => {
-            setLiveAlerts(prev => prev.filter(a => a.id !== alertItem.id));
-          }, 6000);
-
-          // Refresh stats
-          fetchStats().then(res => res.success && setStats(res.stats));
-          fetchTokens().then(res => res.success && setTokensData(res));
-        } else if (event.type === 'WALLET_ADDED') {
-          setWallets(prev => [event.wallet, ...prev]);
-          fetchStats().then(res => res.success && setStats(res.stats));
-        } else if (event.type === 'WALLET_UPDATED') {
-          setWallets(prev => prev.map(w => w.id === event.wallet.id ? event.wallet : w));
-        } else if (event.type === 'WALLET_DELETED') {
-          setWallets(prev => prev.filter(w => w.id !== event.walletId));
-          fetchStats().then(res => res.success && setStats(res.stats));
-        }
+        handleIncomingEvent(event);
       },
-      (err) => {
-        setIsConnected(false);
-      }
+      () => {}
     );
 
     return () => {
-      unsubscribe();
+      wsClient.close();
+      unsubscribeSse();
     };
   }, []);
 
