@@ -10,6 +10,13 @@ export const SUPPORTED_CHAINS = {
     logo: "https://cryptologos.cc/logos/ethereum-eth-logo.svg?v=035",
     explorerUrl: "https://etherscan.io",
     rpcUrl: "https://eth.llamarpc.com",
+    backupRpcs: [
+      "https://cloudflare-eth.com",
+      "https://rpc.ankr.com/eth",
+      "https://ethereum.publicnode.com",
+      "https://1rpc.io/eth"
+    ],
+    wsRpcUrl: "wss://ethereum.publicnode.com",
     nativePriceUsd: 2850.0,
     tags: ["Bluechip NFTs", "DeFi", "Uniswap"]
   },
@@ -24,6 +31,13 @@ export const SUPPORTED_CHAINS = {
     logo: "https://raw.githubusercontent.com/base-org/brand-kit/main/logo/in-product/Base_Symbol_Blue.svg",
     explorerUrl: "https://basescan.org",
     rpcUrl: "https://mainnet.base.org",
+    backupRpcs: [
+      "https://base.llamarpc.com",
+      "https://base.publicnode.com",
+      "https://1rpc.io/base",
+      "https://base-rpc.publicnode.com"
+    ],
+    wsRpcUrl: "wss://base.publicnode.com",
     nativePriceUsd: 2850.0,
     tags: ["Memecoins", "Aerodrome", "Friend.tech"]
   },
@@ -38,6 +52,12 @@ export const SUPPORTED_CHAINS = {
     logo: "https://pbs.twimg.com/profile_images/1691166318882041856/rYQkO2b5_400x400.jpg",
     explorerUrl: "https://hyperliquid.cloud.blockscout.com",
     rpcUrl: "https://rpc.hyperliquid.xyz/evm",
+    backupRpcs: [
+      "https://api.hyperliquid.xyz/evm",
+      "https://hyperliquid-mainnet.public.blastapi.io",
+      "https://rpc-evm.hyperliquid.xyz"
+    ],
+    wsRpcUrl: "wss://rpc.hyperliquid.xyz/evm/ws",
     nativePriceUsd: 38.5,
     tags: ["Hyperliquid", "Perps", "High-Speed"]
   },
@@ -52,6 +72,12 @@ export const SUPPORTED_CHAINS = {
     logo: "https://pbs.twimg.com/profile_images/1769850125218320384/Q3J9x4xP_400x400.jpg",
     explorerUrl: "https://monadexplorer.com",
     rpcUrl: "https://testnet-rpc.monad.xyz",
+    backupRpcs: [
+      "https://monad-testnet.drpc.org",
+      "https://rpc.monad.xyz",
+      "https://monad-testnet.rpc.thirdweb.com"
+    ],
+    wsRpcUrl: "wss://testnet-rpc.monad.xyz/ws",
     nativePriceUsd: 14.2,
     tags: ["Ultra-Speed 10k TPS", "Early Mints", "EVM Parallel"]
   },
@@ -66,6 +92,12 @@ export const SUPPORTED_CHAINS = {
     logo: "https://pbs.twimg.com/profile_images/1849479427672580096/QjD3Gv-E_400x400.jpg",
     explorerUrl: "https://explorer.inkonchain.com",
     rpcUrl: "https://rpc-gel.inkonchain.com",
+    backupRpcs: [
+      "https://ink.drpc.org",
+      "https://explorer.inkonchain.com/api/eth-rpc",
+      "https://rpc.inkonchain.com"
+    ],
+    wsRpcUrl: "wss://rpc-gel.inkonchain.com/ws",
     nativePriceUsd: 2850.0,
     tags: ["Kraken L2", "Superchain", "DeFi Hub"]
   },
@@ -80,6 +112,12 @@ export const SUPPORTED_CHAINS = {
     logo: "https://cryptologos.cc/logos/apecoin-ape-ape-logo.svg?v=035",
     explorerUrl: "https://apescan.io",
     rpcUrl: "https://apechain.calderachain.xyz/http",
+    backupRpcs: [
+      "https://rpc.apechain.com",
+      "https://apechain.drpc.org",
+      "https://curtis.rpc.caldera.xyz/http"
+    ],
+    wsRpcUrl: "wss://apechain.calderachain.xyz/ws",
     nativePriceUsd: 1.65,
     tags: ["Yuga Labs", "Gaming", "Ape NFTs"]
   },
@@ -94,6 +132,13 @@ export const SUPPORTED_CHAINS = {
     logo: "https://cryptologos.cc/logos/bnb-bnb-logo.svg?v=035",
     explorerUrl: "https://bscscan.com",
     rpcUrl: "https://bsc-dataseed.binance.org",
+    backupRpcs: [
+      "https://bsc-dataseed1.defibit.io",
+      "https://bsc-dataseed1.ninicoin.io",
+      "https://binance.llamarpc.com",
+      "https://bsc.publicnode.com"
+    ],
+    wsRpcUrl: "wss://bsc-rpc.publicnode.com",
     nativePriceUsd: 640.0,
     tags: ["PancakeSwap", "Altcoins", "Low Fees"]
   },
@@ -108,6 +153,13 @@ export const SUPPORTED_CHAINS = {
     logo: "https://cryptologos.cc/logos/arbitrum-arb-logo.svg?v=035",
     explorerUrl: "https://arbiscan.io",
     rpcUrl: "https://arb1.arbitrum.io/rpc",
+    backupRpcs: [
+      "https://arbitrum.llamarpc.com",
+      "https://arbitrum-one.publicnode.com",
+      "https://1rpc.io/arb",
+      "https://rpc.ankr.com/arbitrum"
+    ],
+    wsRpcUrl: "wss://arbitrum-one.publicnode.com",
     nativePriceUsd: 2850.0,
     tags: ["GMX", "DeFi Alpha", "Camelot"]
   },
@@ -122,6 +174,12 @@ export const SUPPORTED_CHAINS = {
     logo: "https://cryptologos.cc/logos/robinhood-markets-hood-logo.svg?v=035",
     explorerUrl: "https://robinhood.com",
     rpcUrl: "https://rpc.robinhood.internal",
+    backupRpcs: [
+      "https://robinhood.llamarpc.com",
+      "https://rpc-robinhood.orbit.arbitrum.io",
+      "https://robinhood.drpc.org"
+    ],
+    wsRpcUrl: "wss://rpc.robinhood.internal/ws",
     nativePriceUsd: 2850.0,
     tags: ["Robinhood Chain", "Retail Alpha", "Zero Gas"]
   }
