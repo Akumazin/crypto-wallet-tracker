@@ -96,11 +96,6 @@ app.post('/api/wallets', async (req, res) => {
       wallet: newWallet
     });
 
-    // Trigger initial sample transaction for this new wallet
-    setTimeout(() => {
-      watcher.simulateRandomActivity(newWallet);
-    }, 1200);
-
     res.status(201).json({ success: true, wallet: newWallet });
   } catch (err) {
     console.error("Erro ao adicionar carteira:", err);
@@ -145,14 +140,14 @@ app.get('/api/transactions', (req, res) => {
   res.json({ success: true, count: transactions.length, transactions });
 });
 
-// 5. Trigger Instant Simulation (Manual Test for user)
+// 5. Trigger Instant Simulation (Manual Test for user only)
 app.post('/api/transactions/simulate', (req, res) => {
   const { walletId, type } = req.body;
   const targetWallet = walletId ? db.getWalletById(walletId) : null;
-  const tx = watcher.simulateRandomActivity(targetWallet, type);
+  const tx = watcher.simulateManualTest(targetWallet, type);
 
   if (!tx) {
-    return res.status(400).json({ success: false, message: "Nenhuma carteira ativa disponível para simulação." });
+    return res.status(400).json({ success: false, message: "Nenhuma carteira cadastrada disponível." });
   }
 
   res.json({ success: true, transaction: tx });
